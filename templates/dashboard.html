@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f6fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        h3 {
+            font-size: 18px;
+            color: #555;
+            display: inline-block;
+        }
+        .logout-btn {
+            float: right;
+            padding: 8px 16px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+            color: #333;
+            font-weight: bold;
+        }
+        .editable {
+            background-color: #f9f9f9;
+        }
+        .add-activity-btn, .save-btn {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .add-activity-btn:hover, .save-btn:hover {
+            background-color: #218838;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        .status-cell {
+            text-transform: capitalize;
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Dashboard</h2>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        <h3>Atividades</h3>
+        <div class="actions">
+            <button class="add-activity-btn" onclick="addRow()">Adicionar Atividade</button>
+        </div>
+        <table id="activitiesTable">
+            <thead>
+                <tr>
+                    <th>Atividade</th>
+                    <th>Status</th>
+                    <th>E-mail Professor</th>
+                    {% if current_user.user_type != 'student' %}
+                    <th>E-mail do Aluno</th>
+                    {% endif %}
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in activities %}
+                <tr>
+                    <td contenteditable="true">{{ activity.name }}</td>
+                    <td contenteditable="true" class="status-cell">{{ activity.status }}</td>
+                    <td contenteditable="true">{{ activity.teacher }}</td>
+                    {% if current_user.user_type != 'student' %}
+                    <td contenteditable="true">{{ activity.student }}</td>
+                    {% endif %}
+                    <td><button class="delete-btn" onclick="deleteRow(this)">Excluir</button></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button class="save-btn" onclick="saveData()">Salvar</button>
+    </div>
+
+    <script>
+        const userType = "{{ current_user.user_type }}";
+
+        function logout() {
+            window.location.href = "{{ url_for('logout') }}";
+        }
+
+        function addRow() {
+            const table = document.getElementById('activitiesTable').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            newRow.innerHTML = `
+                <td contenteditable="true">Nova Atividade</td>
+                <td contenteditable="true" class="status-cell">Novo Status</td>
+                <td contenteditable="true">professor@teste.com</td>
+                ${userType !== 'student' ? '<td contenteditable="true">aluno@teste.com</td>' : ''}
+                <td><button class="delete-btn" onclick="deleteRow(this)">Excluir</button></td>
+            `;
+        }
+
+        function deleteRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+        }
+
+        function saveData() {
+            const table = document.getElementById('activitiesTable').getElementsByTagName('tbody')[0];
+            const activities = [];
+
+            for (let row of table.rows) {
+                const name = row.cells[0].innerText.trim();
+                const status = row.cells[1].innerText.trim();
+                const teacher = row.cells[2].innerText.trim();
+                let studentEmail = '';
+
+                if (userType !== 'student' && row.cells[3]) {
+                    studentEmail = row.cells[3].innerText.trim();
+                }
+
+                if (!name || !status || !teacher || (userType !== 'student' && !studentEmail)) {
+                    alert("Preencha todos os campos obrigatórios.");
+                    return;
+                }
+
+                activities.push({ name, status, teacher, studentEmail });
+            }
+
+            console.log("Enviando atividades:", JSON.stringify({ activities }));
+
+            fetch('/save_activities', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ activities })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Erro ao salvar dados.");
+                return response.json();
+            })
+            .then(data => {
+                alert("Atividades salvas com sucesso!");
+            })
+            .catch(error => {
+                alert("Erro ao salvar atividades.");
+                console.error("Erro:", error);
+            });
+        }
+    </script>
+</body>
+</html>

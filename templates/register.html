@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <style>
+        body {
+            background-color: #f0f4f8; /* Azul claro */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+        }
+
+        .register-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 300px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #004080; /* Azul escuro */
+        }
+
+        input[type="email"], /* Alterado para email */
+        input[type="password"],
+        input[type="text"], /* Adicionado para incluir o campo de matrícula */
+        select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #004080; /* Azul escuro */
+            border-radius: 4px;
+            background-color: #e6f0ff; /* Cinza claro */
+        }
+
+        button {
+            background-color: #0066cc; /* Azul vibrante */
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #0073e6; /* Azul mais claro */
+        }
+
+        a {
+            color: #666666; /* Cinza escuro */
+            text-decoration: none;
+            display: block;
+            margin: 10px 0;
+        }
+
+        a:hover {
+            color: #004080; /* Azul escuro */
+        }
+    </style>
+    <script>
+        function toggleMatriculaField() {
+            var userType = document.querySelector('select[name="user_type"]').value;
+            var matriculaField = document.getElementById('matriculaField');
+            var matriculaInput = document.getElementById('matriculaInput');
+
+            if (userType === 'student') {
+                matriculaField.style.display = 'block';
+                matriculaInput.required = true; // Define como obrigatório
+            } else {
+                matriculaField.style.display = 'none';
+                matriculaInput.required = false; // Remove a obrigatoriedade
+                matriculaInput.value = ''; // Limpa o valor do campo de matrícula
+            }
+        }
+
+        // Ocultar o campo de matrícula ao carregar a página, pois o tipo padrão é "teacher"
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleMatriculaField();
+        });
+
+        function validateEmail() {
+            var emailInput = document.querySelector('input[type="email"]');
+            var emailValue = emailInput.value;
+            if (!emailValue.includes('@')) {
+                alert('Por favor, insira um e-mail válido contendo "@"');
+                return false;
+            }
+            return true;
+        }
+    </script>
+</head>
+<body>
+    <div class="register-container">
+        <h2>Register - Task Manager</h2>
+        <form method="POST" onsubmit="return validateEmail()">
+            <input type="email" name="username" placeholder="Institutional Email" required> <!-- Alterado para type="email" -->
+            <input type="password" name="password" placeholder="Password" required>
+            <select name="user_type" required onchange="toggleMatriculaField()">
+                <option value="teacher" selected>Teacher</option>  <!-- Tipo padrão -->
+                <option value="student">Student</option>
+            </select>
+            <div id="matriculaField" style="display: none;">
+                <input type="text" name="matricula" id="matriculaInput" placeholder="Matricula">
+            </div>
+            <button type="submit">Register</button>
+        </form>
+        <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+    </div>
+</body>
+</html>
