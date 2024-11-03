@@ -113,7 +113,7 @@
         </div>
         <h3>Atividades</h3>
         <div class="actions">
-            <button class="add-activity-btn" onclick="addRow()">Adicionar Atividade</button>
+            <button id="addActivityButton" class="add-activity-btn" onclick="addRow()">Adicionar Atividade</button>
         </div>
         <table id="activitiesTable">
             <thead>
@@ -124,7 +124,7 @@
                     {% if current_user.user_type != 'student' %}
                     <th>E-mail do Aluno</th>
                     {% endif %}
-                    <th>Ações</th>
+                    <th id="actionsColumn">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -141,7 +141,7 @@
                 {% endfor %}
             </tbody>
         </table>
-        <button class="save-btn" onclick="saveData()">Salvar</button>
+        <button id="saveButton" class="save-btn" onclick="saveData()">Salvar</button>
     </div>
 
     <script>
@@ -150,7 +150,7 @@
         function logout() {
             window.location.href = "{{ url_for('logout') }}";
         }
-
+        
         function addRow() {
             const table = document.getElementById('activitiesTable').getElementsByTagName('tbody')[0];
             const newRow = table.insertRow();
@@ -158,7 +158,7 @@
                 <td contenteditable="true">Nova Atividade</td>
                 <td contenteditable="true" class="status-cell">Novo Status</td>
                 <td contenteditable="true">professor@teste.com</td>
-                ${userType !== 'student' ? '<td contenteditable="true">aluno@teste.com</td>' : ''}
+                ${userType != 'student' ? '<td contenteditable="true">aluno@teste.com</td>' : ''}
                 <td><button class="delete-btn" onclick="deleteRow(this)">Excluir</button></td>
             `;
         }
@@ -182,7 +182,7 @@
                     studentEmail = row.cells[3].innerText.trim();
                 }
 
-                if (!name || !status || !teacher || (userType !== 'student' && !studentEmail)) {
+                if (!name || !status || !teacher || (userType != 'student' && !studentEmail)) {
                     alert("Preencha todos os campos obrigatórios.");
                     return;
                 }
@@ -211,6 +211,18 @@
                 console.error("Erro:", error);
             });
         }
+
+        // Oculta botões apenas se o usuário for "Teacher"
+        document.addEventListener("DOMContentLoaded", function() {
+            if (userType !== 'student') {
+                document.getElementById('addActivityButton').style.display = 'none';
+                document.getElementById('saveButton').style.display = 'none';
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.style.display = 'none';
+                });
+                document.getElementById('actionsColumn').style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>

@@ -87,11 +87,14 @@ def dashboard():
     if current_user.user_type == 'student':
         # Exibe apenas as atividades do aluno logado
         activities = mongo.db.activities.find({"student": current_user.username})
-        return render_template('dashboard.html', activities=activities)
     elif current_user.user_type == 'teacher':
-        # Exibe todas as atividades dos alunos que o professor supervisiona
-        activities = mongo.db.activities.find()
-        return render_template('dashboard.html', activities=activities)
+        # Exibe apenas as atividades atribuídas ao professor logado
+        activities = mongo.db.activities.find({"teacher": current_user.username})
+    else:
+        activities = []
+
+    return render_template('dashboard.html', activities=activities)
+
 
 @app.route('/add_activity', methods=['POST'])
 @login_required
@@ -122,10 +125,10 @@ def save_activities():
     activities = data.get("activities")
     print("Parsed activities:", activities)  # Log para verificar as atividades
 
-    if activities:
-        # Limpa as atividades atuais do usuário antes de salvar as novas
-        mongo.db.activities.delete_many({"student": current_user.username})
+    # Limpa as atividades atuais do usuário antes de salvar as novas
+    mongo.db.activities.delete_many({"student": current_user.username})
 
+    if activities:
         for activity in activities:
             print("Saving activity:", activity)  # Log para verificar cada atividade
             mongo.db.activities.insert_one({
@@ -135,9 +138,7 @@ def save_activities():
                 "student": current_user.username  # Garante que a atividade seja salva com o nome do usuário
             })
 
-        return jsonify({"status": "success", "message": "Activities saved."}), 200
-    
-    return jsonify({"status": "error", "message": "No data received."}), 400
+    return jsonify({"status": "success", "message": "Activities saved."}), 200
 
 
 @app.route('/')
