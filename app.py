@@ -3,6 +3,7 @@ from flask_pymongo import PyMongo
 from bson import ObjectId
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 
+
 app = Flask(__name__)
 app.secret_key = 'auth'
 app.config['MONGO_URI'] = "mongodb+srv://auth:auth@auth.e7xuu.mongodb.net/auth?retryWrites=true&w=majority"
@@ -12,7 +13,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 class User(UserMixin):
-    def __init__(self, username, user_type):
+    def __init__(self, username, user_type):    
         self.username = username
         self.user_type = user_type
         
