@@ -3,7 +3,6 @@ from flask_pymongo import PyMongo
 from bson import ObjectId
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 
-
 app = Flask(__name__)
 app.secret_key = 'auth'
 app.config['MONGO_URI'] = "mongodb+srv://auth:auth@auth.e7xuu.mongodb.net/auth?retryWrites=true&w=majority"
@@ -29,9 +28,7 @@ def load_user(username):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    print("Reached the register route")  # Log para verificar se a rota é atingida
     if request.method == 'POST':
-        print("Processing registration form")  # Log para verificar se o formulário foi enviado
         username = request.form['username']
         password = request.form['password']
         user_type = request.form['user_type']
@@ -59,8 +56,6 @@ def register():
 
     return render_template('register.html')
 
-
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -85,17 +80,19 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    query = {}
     if current_user.user_type == 'student':
         # Exibe apenas as atividades do aluno logado
-        activities = mongo.db.activities.find({"student": current_user.username})
+        query = {"student": current_user.username}
     elif current_user.user_type == 'teacher':
         # Exibe apenas as atividades atribuídas ao professor logado
-        activities = mongo.db.activities.find({"teacher": current_user.username})
-    else:
-        activities = []
+        query = {"teacher": current_user.username}
+        student_email = request.args.get('student')
+        if student_email:
+            query["student"] = student_email
 
+    activities = mongo.db.activities.find(query)
     return render_template('dashboard.html', activities=activities)
-
 
 @app.route('/add_activity', methods=['POST'])
 @login_required
@@ -115,23 +112,17 @@ def add_activity():
     })
     return jsonify({"status": "success", "message": "Activity added."}), 200
 
-
 @app.route('/save_activities', methods=['POST'])
 @login_required
 def save_activities():
-    print("save_activities called")
     data = request.get_json()
-    print("Received data:", data)  # Log para verificar o que está sendo recebido
-
     activities = data.get("activities")
-    print("Parsed activities:", activities)  # Log para verificar as atividades
 
     # Limpa as atividades atuais do usuário antes de salvar as novas
     mongo.db.activities.delete_many({"student": current_user.username})
 
     if activities:
         for activity in activities:
-            print("Saving activity:", activity)  # Log para verificar cada atividade
             mongo.db.activities.insert_one({
                 "name": activity['name'],
                 "status": activity['status'],
@@ -141,6 +132,14 @@ def save_activities():
 
     return jsonify({"status": "success", "message": "Activities saved."}), 200
 
+@app.route('/get_student_emails', methods=['GET'])
+@login_required
+def get_student_emails():
+    if current_user.user_type == 'teacher':
+        # Encontra os emails dos alunos com atividades atribuídas ao professor logado
+        emails = mongo.db.activities.distinct("student", {"teacher": current_user.username})
+        return jsonify({"emails": emails})
+    return jsonify({"emails": []}), 403
 
 @app.route('/')
 def index():

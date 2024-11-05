@@ -54,6 +54,16 @@
             align-items: center;
             margin-top: 20px;
         }
+        .filter-container {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .filter-container label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -112,9 +122,23 @@
             <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
         <h3>Atividades</h3>
+        
+        {% if current_user.user_type == 'teacher' %}
+        <div class="filter-container">
+            <label for="studentFilter">Filtrar por e-mail do aluno:</label>
+            <select id="studentFilter" onchange="filterByStudent()">
+                <option value="">Todos os Alunos</option>
+            </select>
+            <button onclick="clearFilter()" class="delete-btn" style="padding: 5px;">Limpar Filtro</button>
+        </div>
+        {% endif %}
+        
+        {% if current_user.user_type != 'teacher' %}
         <div class="actions">
             <button id="addActivityButton" class="add-activity-btn" onclick="addRow()">Adicionar Atividade</button>
         </div>
+        {% endif %}
+        
         <table id="activitiesTable">
             <thead>
                 <tr>
@@ -124,33 +148,40 @@
                     {% if current_user.user_type != 'student' %}
                     <th>E-mail do Aluno</th>
                     {% endif %}
+                    {% if current_user.user_type != 'teacher' %}
                     <th id="actionsColumn">Ações</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for activity in activities %}
                 <tr>
-                    <td contenteditable="true">{{ activity.name }}</td>
-                    <td contenteditable="true" class="status-cell">{{ activity.status }}</td>
-                    <td contenteditable="true">{{ activity.teacher }}</td>
+                    <td contenteditable="{{ current_user.user_type != 'teacher' }}">{{ activity.name }}</td>
+                    <td contenteditable="{{ current_user.user_type != 'teacher' }}" class="status-cell">{{ activity.status }}</td>
+                    <td contenteditable="{{ current_user.user_type != 'teacher' }}">{{ activity.teacher }}</td>
                     {% if current_user.user_type != 'student' %}
-                    <td contenteditable="true">{{ activity.student }}</td>
+                    <td contenteditable="{{ current_user.user_type != 'teacher' }}">{{ activity.student }}</td>
                     {% endif %}
+                    {% if current_user.user_type != 'teacher' %}
                     <td><button class="delete-btn" onclick="deleteRow(this)">Excluir</button></td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        
+        {% if current_user.user_type != 'teacher' %}
         <button id="saveButton" class="save-btn" onclick="saveData()">Salvar</button>
+        {% endif %}
     </div>
-
+    
     <script>
         const userType = "{{ current_user.user_type }}";
 
         function logout() {
             window.location.href = "{{ url_for('logout') }}";
         }
-        
+
         function addRow() {
             const table = document.getElementById('activitiesTable').getElementsByTagName('tbody')[0];
             const newRow = table.insertRow();
@@ -171,32 +202,23 @@
         function saveData() {
             const table = document.getElementById('activitiesTable').getElementsByTagName('tbody')[0];
             const activities = [];
-
             for (let row of table.rows) {
                 const name = row.cells[0].innerText.trim();
                 const status = row.cells[1].innerText.trim();
                 const teacher = row.cells[2].innerText.trim();
                 let studentEmail = '';
-
                 if (userType !== 'student' && row.cells[3]) {
                     studentEmail = row.cells[3].innerText.trim();
                 }
-
                 if (!name || !status || !teacher || (userType != 'student' && !studentEmail)) {
                     alert("Preencha todos os campos obrigatórios.");
                     return;
                 }
-
                 activities.push({ name, status, teacher, studentEmail });
             }
-
-            console.log("Enviando atividades:", JSON.stringify({ activities }));
-
             fetch('/save_activities', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ activities })
             })
             .then(response => {
@@ -212,15 +234,34 @@
             });
         }
 
-        // Oculta botões apenas se o usuário for "Teacher"
-        document.addEventListener("DOMContentLoaded", function() {
-            if (userType !== 'student') {
-                document.getElementById('addActivityButton').style.display = 'none';
-                document.getElementById('saveButton').style.display = 'none';
-                document.querySelectorAll('.delete-btn').forEach(button => {
-                    button.style.display = 'none';
+        function loadStudentEmails() {
+            fetch('/get_student_emails')
+            .then(response => response.json())
+            .then(data => {
+                const emailSelect = document.getElementById('studentFilter');
+                data.emails.forEach(email => {
+                    const option = document.createElement('option');
+                    option.value = email;
+                    option.textContent = email;
+                    emailSelect.appendChild(option);
                 });
-                document.getElementById('actionsColumn').style.display = 'none';
+            });
+        }
+
+        function filterByStudent() {
+            const selectedEmail = document.getElementById('studentFilter').value;
+            const url = selectedEmail ? `/dashboard?student=${selectedEmail}` : '/dashboard';
+            window.location.href = url;
+        }
+
+        function clearFilter() {
+            document.getElementById('studentFilter').value = '';
+            filterByStudent();
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (userType === 'teacher') {
+                loadStudentEmails();
             }
         });
     </script>
